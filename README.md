@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SeatSync
 
-## Getting Started
+A concurrency-safe event booking app. Events have a fixed number of seats;
+multiple users booking the same event at the same time can never oversell it.
+No duplicate bookings, no negative seat counts — enforced by real database
+transactions, not application-level checks.
 
-First, run the development server:
+This README will grow with each phase. Right now this covers setup for local
+development.
+
+## Stack
+
+- Next.js (App Router) + TypeScript + Tailwind CSS
+- PostgreSQL via [Neon](https://neon.tech), accessed through Prisma
+- Hand-rolled auth (JWT + bcrypt)
+- [Resend](https://resend.com) for booking emails
+- Jest + Supertest for tests
+- GitHub Actions for CI
+- Deployed on Vercel
+
+## Getting started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Copy the env file and fill in real values:
+
+```bash
+cp .env.example .env
+```
+
+- `DATABASE_URL` — a Neon PostgreSQL connection string
+- `JWT_SECRET` — a long random string (`openssl rand -base64 32`)
+- `RESEND_API_KEY` — a Resend API key
+
+Generate the Prisma client:
+
+```bash
+npx prisma generate
+```
+
+Run the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Health check is at
+`/api/health`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` — start the dev server
+- `npm run build` / `npm run start` — production build and start
+- `npm run lint` — ESLint
+- `npm run format` / `npm run format:check` — Prettier
+- `npm run typecheck` — TypeScript, no emit
 
-## Learn More
+## Status
 
-To learn more about Next.js, take a look at the following resources:
+Work in progress, built in phases:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [x] Phase 0 — scaffold
+- [ ] Phase 1 — auth
+- [ ] Phase 2 — events
+- [ ] Phase 3 — concurrency-safe booking
+- [ ] Phase 4 — booking UI + email
+- [ ] Phase 5 — load-test proof
+- [ ] Phase 6 — CI + deploy
