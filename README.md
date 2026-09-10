@@ -73,13 +73,27 @@ Route handlers are tested by wrapping the real exported handler function in a
 minimal `http.Server` (see `tests/helpers/testServer.ts`) and driving it with
 Supertest — real HTTP requests, real Postgres, no Next.js dev server needed.
 
+## Admin access
+
+There's no signup flow for admins yet. To get one: sign up a normal account
+through `/api/auth/signup` (or the app once it has a signup page), then
+promote it directly in the database:
+
+```sql
+UPDATE "User" SET role = 'ADMIN' WHERE email = 'you@example.com';
+```
+
+Run that with `npx prisma db execute --stdin` or through Neon's SQL editor.
+Once promoted, log in at `/login` and the "Admin" link appears in the header,
+pointing at `/admin/events`.
+
 ## Status
 
 Work in progress, built in phases:
 
 - [x] Phase 0 — scaffold
 - [x] Phase 1 — auth
-- [ ] Phase 2 — events
+- [x] Phase 2 — events
 - [ ] Phase 3 — concurrency-safe booking
 - [ ] Phase 4 — booking UI + email
 - [ ] Phase 5 — load-test proof
