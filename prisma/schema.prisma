@@ -22,3 +22,15 @@ model User {
   role         Role     @default(USER)
   createdAt    DateTime @default(now())
 }
+
+model Event {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  venue          String
+  date           DateTime
+  totalSeats     Int
+  seatsAvailable Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

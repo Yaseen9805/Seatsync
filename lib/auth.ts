@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import type { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import type { Role } from '@/app/generated/prisma/enums';
 
 const SALT_ROUNDS = 10;
@@ -52,6 +52,15 @@ export function verifyToken(token: string): AuthPayload {
   }
 }
 
+export function tryVerifyToken(token: string | undefined | null): AuthPayload | null {
+  if (!token) return null;
+  try {
+    return verifyToken(token);
+  } catch {
+    return null;
+  }
+}
+
 function parseCookies(header: string | null): Record<string, string> {
   if (!header) return {};
   return Object.fromEntries(
@@ -87,6 +96,14 @@ export function requireAdmin(request: Request): AuthPayload {
   return payload;
 }
 
+/** Converts an AuthError into a JSON response; rethrows anything else. */
+export function toAuthErrorResponse(err: unknown): NextResponse {
+  if (err instanceof AuthError) {
+    return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  throw err;
+}
+
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -104,5 +121,15 @@ export function setAuthCookie(response: NextResponse, token: string): void {
     sameSite: 'lax',
     path: '/',
     maxAge: TOKEN_TTL_SECONDS,
+  });
+}
+
+export function clearAuthCookie(response: NextResponse): void {
+  response.cookies.set(AUTH_COOKIE_NAME, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
   });
 }
