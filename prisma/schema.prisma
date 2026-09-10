@@ -1,10 +1,24 @@
 // Prisma schema for SeatSync. Datasource is PostgreSQL (Neon).
 
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../app/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
 }
