@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -66,6 +67,12 @@ export default function LoginPage() {
           {submitting ? 'Logging in…' : 'Log in'}
         </button>
       </form>
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        Don&rsquo;t have an account?{' '}
+        <Link href="/signup" className="underline">
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }
