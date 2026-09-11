@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@/app/generated/prisma/client';
 import { requireAuth, toAuthErrorResponse } from '@/lib/auth';
+import { sendBookingCancellationEmail, sendBookingConfirmationEmail } from '@/lib/email';
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
   let userId: string;
+  let userEmail: string;
   try {
-    userId = requireAuth(request).sub;
+    const payload = requireAuth(request);
+    userId = payload.sub;
+    userEmail = payload.email;
   } catch (err) {
     return toAuthErrorResponse(err);
   }
@@ -46,6 +50,14 @@ export async function POST(request: Request, { params }: Params) {
       return tx.booking.create({ data: { userId, eventId, seats } });
     });
 
+    void sendBookingConfirmationEmail({
+      to: userEmail,
+      eventTitle: event.title,
+      eventVenue: event.venue,
+      eventDate: event.date,
+      seats,
+    });
+
     return NextResponse.json({ booking }, { status: 201 });
   } catch (err) {
     if (err instanceof NotEnoughSeatsError) {
@@ -63,8 +75,11 @@ export async function POST(request: Request, { params }: Params) {
 
 export async function DELETE(request: Request, { params }: Params) {
   let userId: string;
+  let userEmail: string;
   try {
-    userId = requireAuth(request).sub;
+    const payload = requireAuth(request);
+    userId = payload.sub;
+    userEmail = payload.email;
   } catch (err) {
     return toAuthErrorResponse(err);
   }
@@ -73,6 +88,7 @@ export async function DELETE(request: Request, { params }: Params) {
 
   const booking = await prisma.booking.findUnique({
     where: { userId_eventId: { userId, eventId } },
+    include: { event: true },
   });
   if (!booking) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
@@ -84,6 +100,14 @@ export async function DELETE(request: Request, { params }: Params) {
       where: { id: eventId },
       data: { seatsAvailable: { increment: booking.seats } },
     });
+  });
+
+  void sendBookingCancellationEmail({
+    to: userEmail,
+    eventTitle: booking.event.title,
+    eventVenue: booking.event.venue,
+    eventDate: booking.event.date,
+    seats: booking.seats,
   });
 
   return new NextResponse(null, { status: 204 });
