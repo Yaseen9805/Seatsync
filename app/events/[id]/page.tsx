@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/session';
+import { BookingPanel } from '@/components/BookingPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +22,13 @@ export default async function EventDetailPage({ params }: Params) {
     notFound();
   }
 
+  const session = await getSession();
+  const existingBooking = session
+    ? await prisma.booking.findUnique({
+        where: { userId_eventId: { userId: session.sub, eventId: id } },
+      })
+    : null;
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold tracking-tight">{event.title}</h1>
@@ -30,6 +39,12 @@ export default async function EventDetailPage({ params }: Params) {
       <p className="text-sm font-medium">
         {event.seatsAvailable} of {event.totalSeats} seats available
       </p>
+      <BookingPanel
+        eventId={event.id}
+        seatsAvailable={event.seatsAvailable}
+        isLoggedIn={!!session}
+        existingBooking={existingBooking ? { seats: existingBooking.seats } : null}
+      />
     </div>
   );
 }
