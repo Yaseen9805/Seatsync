@@ -6,6 +6,13 @@ import { sendBookingCancellationEmail, sendBookingConfirmationEmail } from '@/li
 
 type Params = { params: Promise<{ id: string }> };
 
+// Every booking for a given event serializes on that event's row lock, so
+// under a heavy simultaneous burst a queued transaction can need much
+// longer than Prisma's 2s default to even get a turn. Widening the wait
+// budget trades latency for correctness instead of failing requests that
+// would otherwise have resolved cleanly - see scripts/loadtest.ts.
+const BOOKING_TX_OPTIONS = { maxWait: 10_000, timeout: 10_000 };
+
 export async function POST(request: Request, { params }: Params) {
   let userId: string;
   let userEmail: string;
@@ -48,7 +55,7 @@ export async function POST(request: Request, { params }: Params) {
       // Unique (userId, eventId) constraint rejects a second booking for
       // the same user/event, rolling back the decrement above with it.
       return tx.booking.create({ data: { userId, eventId, seats } });
-    });
+    }, BOOKING_TX_OPTIONS);
 
     void sendBookingConfirmationEmail({
       to: userEmail,
@@ -67,6 +74,12 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json(
         { error: 'You already have a booking for this event' },
         { status: 409 },
+      );
+    }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2028') {
+      return NextResponse.json(
+        { error: 'Booking service is busy, please try again' },
+        { status: 503 },
       );
     }
     throw err;
@@ -94,13 +107,23 @@ export async function DELETE(request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.booking.delete({ where: { id: booking.id } });
-    await tx.event.update({
-      where: { id: eventId },
-      data: { seatsAvailable: { increment: booking.seats } },
-    });
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.booking.delete({ where: { id: booking.id } });
+      await tx.event.update({
+        where: { id: eventId },
+        data: { seatsAvailable: { increment: booking.seats } },
+      });
+    }, BOOKING_TX_OPTIONS);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2028') {
+      return NextResponse.json(
+        { error: 'Booking service is busy, please try again' },
+        { status: 503 },
+      );
+    }
+    throw err;
+  }
 
   void sendBookingCancellationEmail({
     to: userEmail,

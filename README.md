@@ -60,6 +60,8 @@ Open [http://localhost:3000](http://localhost:3000). Health check is at
 - `npm run format` / `npm run format:check` — Prettier
 - `npm run typecheck` — TypeScript, no emit
 - `npm test` — Jest
+- `npm run loadtest` — concurrency load test against a running server (see
+  [Load testing](#load-testing))
 
 ## Testing
 
@@ -72,6 +74,47 @@ the test branch instead.
 Route handlers are tested by wrapping the real exported handler function in a
 minimal `http.Server` (see `tests/helpers/testServer.ts`) and driving it with
 Supertest — real HTTP requests, real Postgres, no Next.js dev server needed.
+
+## Load testing
+
+`scripts/loadtest.ts` proves the overselling guarantee under real concurrency
+against a running server (not an in-process handler call like the Jest
+tests) — it creates an event with a small number of seats, creates far more
+test users than there are seats, and fires all of their booking requests at
+once with `Promise.all`, then checks that exactly `min(seats, requesters)`
+succeeded and the seat count landed exactly right. Run it against a running
+`npm run dev` or `npm start`:
+
+```bash
+npm run loadtest
+# or override the defaults:
+BASE_URL=http://localhost:3000 SEATS=20 REQUESTS=200 npm run loadtest
+```
+
+Sample run — 300 concurrent requesters against 30 seats:
+
+```
+201 (booked):      30
+409 (rejected):    270
+unexpected status: 0
+seatsAvailable:    0 (expected 0)
+booking rows:      30 (expected 30)
+
+PASS: no overselling, seat count exact
+```
+
+The first run at this scale surfaced a real limit: with the default
+connection pool size and Prisma's 2s transaction-start budget, most of the
+270 losing requests failed with a `P2028` ("unable to start a transaction in
+the given time") instead of a clean 409, because every booking for the same
+event serializes on that event's row lock and there weren't enough pooled
+connections for that many requests to even queue for their turn. Fixed by
+widening the Neon pool (`lib/prisma.ts`) and the transaction's `maxWait`/
+`timeout` (`app/api/events/[id]/bookings/route.ts`), with a `503` fallback
+for the (now unreached, at this scale) case of a transaction that still
+can't start in time. Seat accounting was correct even before that fix — the
+guarded decrement never oversold — the fix turns "busy" into an honest 503
+instead of an unhandled 500.
 
 ## Admin access
 
@@ -96,5 +139,5 @@ Work in progress, built in phases:
 - [x] Phase 2 — events
 - [x] Phase 3 — concurrency-safe booking
 - [x] Phase 4 — booking UI + email
-- [ ] Phase 5 — load-test proof
+- [x] Phase 5 — load-test proof
 - [ ] Phase 6 — CI + deploy
