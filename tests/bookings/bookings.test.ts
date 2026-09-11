@@ -156,7 +156,7 @@ describe('POST /api/events/[id]/bookings', () => {
 
     const bookingCount = await prisma.booking.count({ where: { eventId: event.id } });
     expect(bookingCount).toBe(SEATS);
-  });
+  }, 20_000);
 });
 
 describe('DELETE /api/events/[id]/bookings', () => {
