@@ -16,21 +16,38 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
+  role         Role      @default(USER)
+  createdAt    DateTime  @default(now())
+  bookings     Booking[]
 }
 
 model Event {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   title          String
   description    String
   venue          String
   date           DateTime
   totalSeats     Int
   seatsAvailable Int
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bookings       Booking[]
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  seats     Int
+  createdAt DateTime @default(now())
+
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
+
+  // A user can only hold one booking per event — re-booking means
+  // canceling and booking again, not stacking rows.
+  @@unique([userId, eventId])
 }
