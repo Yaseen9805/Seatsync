@@ -94,7 +94,7 @@ Work in progress, built in phases:
 - [x] Phase 0 — scaffold
 - [x] Phase 1 — auth
 - [x] Phase 2 — events
-- [ ] Phase 3 — concurrency-safe booking
+- [x] Phase 3 — concurrency-safe booking
 - [ ] Phase 4 — booking UI + email
 - [ ] Phase 5 — load-test proof
 - [ ] Phase 6 — CI + deploy
