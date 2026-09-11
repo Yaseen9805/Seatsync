@@ -5,6 +5,8 @@ multiple users booking the same event at the same time can never oversell it.
 No duplicate bookings, no negative seat counts — enforced by real database
 transactions, not application-level checks.
 
+Live at **[seatsync-beta.vercel.app](https://seatsync-beta.vercel.app)**.
+
 This README will grow with each phase. Right now this covers setup for local
 development.
 
@@ -128,23 +130,32 @@ instead of an unhandled 500.
 ## Deployment
 
 Deployed on [Vercel](https://vercel.com), which builds and hosts the Next.js
-app directly from this repo.
+app directly from this repo: **https://seatsync-beta.vercel.app**.
 
-1. On [vercel.com](https://vercel.com), **Add New → Project** and import
-   this GitHub repo.
-2. Create a third Neon branch for production (separate from the dev and test
-   branches) and, in the Vercel project's Environment Variables, set:
-   - `DATABASE_URL` — the production branch's pooled connection string
-   - `DIRECT_URL` — the production branch's direct connection string
-   - `JWT_SECRET` — a new long random string, distinct from dev/test
-     (`openssl rand -base64 32`)
-   - `RESEND_API_KEY` — a real Resend key, so booking emails actually send
-3. Deploy. The build command (`npm run build`) runs `prisma generate &&
-prisma migrate deploy && next build`, so every deploy applies any pending
-   migrations to the production database automatically before building.
-4. Promote your own account to admin on the production database the same
-   way as [Admin access](#admin-access) below, pointed at the production
-   connection string instead of dev.
+The Vercel project (`seatsync`, under the `yaseen9805-gmailcoms-projects`
+scope) is linked to this GitHub repo and has its own environment variables,
+separate from local dev/CI:
+
+- `DATABASE_URL` / `DIRECT_URL` — the Neon `production` branch (a separate
+  branch from the `test` branch CI uses)
+- `JWT_SECRET` — its own long random string, distinct from dev/test
+- `RESEND_API_KEY` — currently the same placeholder as dev/test, so
+  production booking emails no-op silently rather than sending. Swap it for
+  a real Resend key in the Vercel project's Environment Variables to turn
+  emails on.
+
+The build command (`npm run build`) runs `prisma generate && prisma migrate
+deploy && next build`, so every deploy applies any pending migrations to the
+production database automatically before building. To promote an account to
+admin in production, run the same `UPDATE` below against the production
+connection string instead of dev (see [Admin access](#admin-access)).
+
+To redeploy manually instead of waiting on the GitHub integration:
+
+```bash
+npx vercel link   # first time only, links this directory to the project
+npx vercel --prod
+```
 
 ## Admin access
 
@@ -170,6 +181,4 @@ Work in progress, built in phases:
 - [x] Phase 3 — concurrency-safe booking
 - [x] Phase 4 — booking UI + email
 - [x] Phase 5 — load-test proof
-- [x] Phase 6a — CI
-- [ ] Phase 6b — deploy (see [Deployment](#deployment) — needs a one-time
-      manual Vercel project import, which only an account owner can do)
+- [x] Phase 6 — CI + deploy
