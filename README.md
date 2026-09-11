@@ -75,6 +75,15 @@ Route handlers are tested by wrapping the real exported handler function in a
 minimal `http.Server` (see `tests/helpers/testServer.ts`) and driving it with
 Supertest — real HTTP requests, real Postgres, no Next.js dev server needed.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request to `main`:
+format check, lint, typecheck, `prisma migrate deploy` against the Neon test
+branch, the Jest suite, and a production build. The workflow reads
+`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, and `RESEND_API_KEY` from repo
+secrets (Settings → Secrets and variables → Actions) — point them at the same
+test branch used by `.env.test` locally, never at dev/prod.
+
 ## Load testing
 
 `scripts/loadtest.ts` proves the overselling guarantee under real concurrency
@@ -116,6 +125,27 @@ can't start in time. Seat accounting was correct even before that fix — the
 guarded decrement never oversold — the fix turns "busy" into an honest 503
 instead of an unhandled 500.
 
+## Deployment
+
+Deployed on [Vercel](https://vercel.com), which builds and hosts the Next.js
+app directly from this repo.
+
+1. On [vercel.com](https://vercel.com), **Add New → Project** and import
+   this GitHub repo.
+2. Create a third Neon branch for production (separate from the dev and test
+   branches) and, in the Vercel project's Environment Variables, set:
+   - `DATABASE_URL` — the production branch's pooled connection string
+   - `DIRECT_URL` — the production branch's direct connection string
+   - `JWT_SECRET` — a new long random string, distinct from dev/test
+     (`openssl rand -base64 32`)
+   - `RESEND_API_KEY` — a real Resend key, so booking emails actually send
+3. Deploy. The build command (`npm run build`) runs `prisma generate &&
+prisma migrate deploy && next build`, so every deploy applies any pending
+   migrations to the production database automatically before building.
+4. Promote your own account to admin on the production database the same
+   way as [Admin access](#admin-access) below, pointed at the production
+   connection string instead of dev.
+
 ## Admin access
 
 There's no signup flow for admins yet. To get one: sign up a normal account
@@ -140,4 +170,6 @@ Work in progress, built in phases:
 - [x] Phase 3 — concurrency-safe booking
 - [x] Phase 4 — booking UI + email
 - [x] Phase 5 — load-test proof
-- [ ] Phase 6 — CI + deploy
+- [x] Phase 6a — CI
+- [ ] Phase 6b — deploy (see [Deployment](#deployment) — needs a one-time
+      manual Vercel project import, which only an account owner can do)
