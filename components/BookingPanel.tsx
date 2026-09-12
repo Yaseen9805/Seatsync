@@ -3,6 +3,11 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'motion/react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import GradientButton from '@/components/kokonutui/gradient-button';
 
 type BookingPanelProps = {
   eventId: string;
@@ -59,10 +64,22 @@ export function BookingPanel({
     router.refresh();
   }
 
+  const errorMessage = error && (
+    <AnimatePresence>
+      <motion.p
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        className="text-sm text-destructive"
+      >
+        {error}
+      </motion.p>
+    </AnimatePresence>
+  );
+
   if (!isLoggedIn) {
     return (
-      <p className="text-sm">
-        <Link href="/login" className="underline">
+      <p className="text-sm text-muted-foreground">
+        <Link href="/login" className="text-foreground underline underline-offset-4">
           Log in
         </Link>{' '}
         to book seats for this event.
@@ -72,46 +89,46 @@ export function BookingPanel({
 
   if (existingBooking) {
     return (
-      <div className="flex flex-col gap-2">
-        <p className="text-sm">You&rsquo;re booked for {existingBooking.seats} seat(s).</p>
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        <button
-          onClick={handleCancel}
-          disabled={submitting}
-          className="w-fit text-sm text-red-600 hover:underline disabled:opacity-50 dark:text-red-400"
-        >
+      <div className="flex flex-col gap-3">
+        <p className="text-sm">
+          You&rsquo;re booked for <span className="font-medium">{existingBooking.seats}</span> seat
+          {existingBooking.seats === 1 ? '' : 's'}.
+        </p>
+        {errorMessage}
+        <Button variant="destructive" size="sm" onClick={handleCancel} disabled={submitting}>
           {submitting ? 'Canceling…' : 'Cancel booking'}
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (seatsAvailable < 1) {
-    return <p className="text-sm text-zinc-600 dark:text-zinc-400">Sold out.</p>;
+    return <p className="text-sm text-muted-foreground">Sold out.</p>;
   }
 
   return (
-    <form onSubmit={handleBook} className="flex flex-col gap-2">
-      <label className="flex items-center gap-2 text-sm">
-        Seats
-        <input
+    <form onSubmit={handleBook} className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="seats">Seats</Label>
+        <Input
+          id="seats"
           type="number"
           min={1}
           max={seatsAvailable}
           required
           value={seats}
           onChange={(e) => setSeats(e.target.value)}
-          className="w-20 rounded border border-black/10 px-2 py-1 dark:border-white/20 dark:bg-transparent"
+          className="w-24"
         />
-      </label>
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      <button
+      </div>
+      {errorMessage}
+      <GradientButton
         type="submit"
         disabled={submitting}
-        className="w-fit rounded bg-zinc-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
-      >
-        {submitting ? 'Booking…' : 'Book'}
-      </button>
+        label={submitting ? 'Booking…' : 'Book'}
+        variant="emerald"
+        className="w-full"
+      />
     </form>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 export function DeleteEventButton({ eventId, title }: { eventId: string; title: string }) {
   const router = useRouter();
@@ -16,12 +17,8 @@ export function DeleteEventButton({ eventId, title }: { eventId: string; title: 
   }
 
   return (
-    <button
-      onClick={handleDelete}
-      disabled={deleting}
-      className="text-sm text-red-600 hover:underline disabled:opacity-50 dark:text-red-400"
-    >
+    <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
       {deleting ? 'Deleting…' : 'Delete'}
-    </button>
+    </Button>
   );
 }

@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     'build/**',
     'next-env.d.ts',
     'app/generated/**',
+    // Vendored from the @bklit shadcn registry (components/charts/ring-chart
+    // etc.) - treated like generated code, not hand-maintained here.
+    'components/charts/**',
   ]),
 ]);
 
