@@ -52,15 +52,17 @@ describe('POST /api/auth/signup', () => {
     expect(res.status).toBe(409);
   });
 
-  it('rejects a short password', async () => {
+  it('rejects a short password with a per-field error', async () => {
     const res = await request(server).post('/api/auth/signup').send({ email, password: 'short' });
 
     expect(res.status).toBe(400);
+    expect(res.body.fields.password[0]).toMatch(/at least 8 characters/i);
   });
 
-  it('rejects a missing email', async () => {
+  it('rejects a missing email with a per-field error', async () => {
     const res = await request(server).post('/api/auth/signup').send({ password: 'password123' });
 
     expect(res.status).toBe(400);
+    expect(res.body.fields.email[0]).toMatch(/email is required/i);
   });
 });

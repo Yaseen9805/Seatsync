@@ -51,3 +51,15 @@ model Booking {
   // canceling and booking again, not stacking rows.
   @@unique([userId, eventId])
 }
+
+// Backs the DB-only rate limiter in lib/rateLimit.ts: one row per attempt,
+// grouped by an arbitrary `key` (e.g. "login:ip:1.2.3.4" or
+// "login:email:user@example.com"). Old rows are pruned opportunistically
+// on each check rather than by a scheduled job, so this needs no cron.
+model RateLimitAttempt {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}

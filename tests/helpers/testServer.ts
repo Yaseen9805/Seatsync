@@ -4,6 +4,15 @@ type RouteHandler = (request: Request) => Promise<Response>;
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export function createTestServer(handlers: Partial<Record<Method, RouteHandler>>): Server {
+  // Each server instance gets its own fake IP so tests that don't care
+  // about rate limiting never share an identity - across test files (no
+  // cross-file interference) or across separate test runs (the real test
+  // DB isn't reset between `npm test` invocations, so a shared/fixed IP
+  // would accumulate rate-limit rows over repeated runs and eventually
+  // make unrelated tests flaky). Tests that do care can still override
+  // this per-request with `.set('X-Forwarded-For', ...)`.
+  const defaultTestIp = `test-${Math.random().toString(36).slice(2)}`;
+
   return createServer(async (req, res) => {
     const method = (req.method ?? 'GET') as Method;
     const handler = handlers[method];
@@ -20,9 +29,14 @@ export function createTestServer(handlers: Partial<Record<Method, RouteHandler>>
     const body = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
     const hasBody = method !== 'GET' && method !== 'DELETE' && body !== undefined;
 
+    const headers = new Headers(req.headers as HeadersInit);
+    if (!headers.has('x-forwarded-for')) {
+      headers.set('x-forwarded-for', defaultTestIp);
+    }
+
     const request = new Request(`http://localhost${req.url}`, {
       method,
-      headers: req.headers as HeadersInit,
+      headers,
       body: hasBody ? body : undefined,
     });
 

@@ -74,20 +74,22 @@ describe('POST /api/events', () => {
     });
   });
 
-  it('rejects a non-positive totalSeats', async () => {
+  it('rejects a non-positive totalSeats with a per-field error', async () => {
     const res = await request(collectionServer)
       .post('/api/events')
       .set('Cookie', adminCookie)
       .send({ ...validEvent, totalSeats: 0 });
     expect(res.status).toBe(400);
+    expect(res.body.fields.totalSeats[0]).toMatch(/positive integer/i);
   });
 
-  it('rejects a missing title', async () => {
+  it('rejects a missing title with a per-field error', async () => {
     const res = await request(collectionServer)
       .post('/api/events')
       .set('Cookie', adminCookie)
       .send({ ...validEvent, title: undefined });
     expect(res.status).toBe(400);
+    expect(res.body.fields.title[0]).toMatch(/title is required/i);
   });
 });
 

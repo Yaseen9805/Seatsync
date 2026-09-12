@@ -1,14 +1,41 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { comparePassword, normalizeEmail, setAuthCookie, signToken } from '@/lib/auth';
+import { comparePassword, setAuthCookie, signToken, toAuthErrorResponse } from '@/lib/auth';
+import {
+  enforceRateLimit,
+  getClientIp,
+  LOGIN_EMAIL_RATE_LIMIT,
+  LOGIN_IP_RATE_LIMIT,
+} from '@/lib/rateLimit';
+import { loginSchema } from '@/lib/schemas';
+import { validationErrorResponse } from '@/lib/validation';
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  const email = typeof body?.email === 'string' ? normalizeEmail(body.email) : '';
-  const password = typeof body?.password === 'string' ? body.password : '';
+  try {
+    await enforceRateLimit(
+      `login:ip:${getClientIp(request)}`,
+      LOGIN_IP_RATE_LIMIT,
+      'Too many login attempts from this IP, please try again later',
+    );
+  } catch (err) {
+    return toAuthErrorResponse(err);
+  }
 
-  if (!email || !password) {
-    return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+  const body = await request.json().catch(() => null);
+  const parsed = loginSchema.safeParse(body ?? {});
+  if (!parsed.success) {
+    return validationErrorResponse(parsed.error);
+  }
+  const { email, password } = parsed.data;
+
+  try {
+    await enforceRateLimit(
+      `login:email:${email}`,
+      LOGIN_EMAIL_RATE_LIMIT,
+      'Too many login attempts for this account, please try again later',
+    );
+  } catch (err) {
+    return toAuthErrorResponse(err);
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
