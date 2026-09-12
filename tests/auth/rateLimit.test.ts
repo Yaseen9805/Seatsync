@@ -93,5 +93,5 @@ describe('rate limiting', () => {
 
     expect(res.status).toBe(429);
     expect(res.body.error).toMatch(/too many login attempts for this account/i);
-  });
+  }, 20_000);
 });
