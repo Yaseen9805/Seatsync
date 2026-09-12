@@ -39,28 +39,28 @@ Deployed on [Vercel](https://vercel.com)'s free Hobby tier: **https://seatsync-b
 
 ```mermaid
 flowchart TD
-    Client(["Client<br/>(browser)"])
+    Client(["Client browser"])
 
     subgraph Next["Next.js App Router"]
         direction TB
-        Pages["Server Component pages<br/>(app/**/page.tsx)"]
-        Routes["Route handlers<br/>(app/api/**/route.ts)"]
-        RateLimit["DB-backed rate limiter<br/>(lib/rateLimit.ts)"]
-        Validate["Zod validation<br/>(lib/schemas.ts)"]
-        AuthMW["JWT auth / role checks<br/>(lib/auth.ts)"]
-        Tx["Guarded atomic transaction<br/>(events/[id]/bookings/route.ts)"]
+        Pages["Server Component pages"]
+        Routes["Route handlers"]
+        RateLimit["DB-backed rate limiter"]
+        Validate["Zod validation"]
+        AuthMW["JWT auth and role checks"]
+        Tx["Guarded atomic transaction"]
     end
 
     Prisma[("Prisma Client")]
-    Neon[("PostgreSQL<br/>(Neon)")]
+    Neon[("PostgreSQL on Neon")]
 
     Client -->|HTTP request| Routes
     Client -->|page request| Pages
     Routes --> RateLimit --> Validate --> AuthMW --> Tx --> Prisma --> Neon
     Pages --> Prisma
 
-    Tx -.->|after() - after the response is sent| Resend["Resend<br/>(lib/email.ts)"]
-    Resend -.->|confirmation / cancellation email| Inbox(["Booker's inbox"])
+    Tx -.->|scheduled after the response| Resend["Resend email"]
+    Resend -.->|confirmation or cancellation| Inbox(["Booker's inbox"])
 ```
 
 Request flow for a booking (`POST /api/events/:id/bookings`): the rate limiter and Zod validation both run before any database work, so a flood or a malformed body never reaches the transaction; the guarded `UPDATE` inside that transaction is what actually makes overselling impossible, not an application-level lock; the confirmation email is scheduled with `after()` rather than awaited, so a slow or failing email provider can never delay or fail the booking itself.
@@ -275,16 +275,3 @@ Run that with `npx prisma db execute --stdin` or through Neon's SQL editor. Once
 ```bash
 npx eslint .
 ```
-
-## Status
-
-Built in phases, all complete:
-
-- [x] Phase 0 — scaffold
-- [x] Phase 1 — auth
-- [x] Phase 2 — events
-- [x] Phase 3 — concurrency-safe booking
-- [x] Phase 4 — booking UI + email
-- [x] Phase 5 — load-test proof
-- [x] Phase 6 — CI + deploy
-- [x] Phase 7 — hardening (rate limiting, Zod validation, real booking emails)
