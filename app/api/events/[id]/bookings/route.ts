@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@/app/generated/prisma/client';
 import { requireAuth, toAuthErrorResponse } from '@/lib/auth';
@@ -12,6 +12,23 @@ type Params = { params: Promise<{ id: string }> };
 // budget trades latency for correctness instead of failing requests that
 // would otherwise have resolved cleanly - see scripts/loadtest.ts.
 const BOOKING_TX_OPTIONS = { maxWait: 10_000, timeout: 10_000 };
+
+/**
+ * Schedules `work` to run after the response is sent via Next's `after()`,
+ * which keeps the serverless invocation alive until it resolves - without
+ * this, Vercel can freeze the function the instant the response returns,
+ * killing an unawaited fetch to Resend before it completes. `after()`
+ * requires a real Next.js request scope, which the test suite's harness
+ * doesn't provide (it invokes route handlers directly), so this falls back
+ * to a plain fire-and-forget call when `after` throws for that reason.
+ */
+function runAfterResponse(work: () => Promise<void>): void {
+  try {
+    after(work);
+  } catch {
+    void work();
+  }
+}
 
 export async function POST(request: Request, { params }: Params) {
   let userId: string;
@@ -57,13 +74,15 @@ export async function POST(request: Request, { params }: Params) {
       return tx.booking.create({ data: { userId, eventId, seats } });
     }, BOOKING_TX_OPTIONS);
 
-    void sendBookingConfirmationEmail({
-      to: userEmail,
-      eventTitle: event.title,
-      eventVenue: event.venue,
-      eventDate: event.date,
-      seats,
-    });
+    runAfterResponse(() =>
+      sendBookingConfirmationEmail({
+        to: userEmail,
+        eventTitle: event.title,
+        eventVenue: event.venue,
+        eventDate: event.date,
+        seats,
+      }),
+    );
 
     return NextResponse.json({ booking }, { status: 201 });
   } catch (err) {
@@ -125,13 +144,15 @@ export async function DELETE(request: Request, { params }: Params) {
     throw err;
   }
 
-  void sendBookingCancellationEmail({
-    to: userEmail,
-    eventTitle: booking.event.title,
-    eventVenue: booking.event.venue,
-    eventDate: booking.event.date,
-    seats: booking.seats,
-  });
+  runAfterResponse(() =>
+    sendBookingCancellationEmail({
+      to: userEmail,
+      eventTitle: booking.event.title,
+      eventVenue: booking.event.venue,
+      eventDate: booking.event.date,
+      seats: booking.seats,
+    }),
+  );
 
   return new NextResponse(null, { status: 204 });
 }
