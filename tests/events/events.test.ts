@@ -178,6 +178,27 @@ describe('/api/events/[id]', () => {
     expect(res.status).toBe(403);
   });
 
+  it('DELETE rejects an event with existing bookings', async () => {
+    const bookingUser = await prisma.user.create({
+      data: { email: `test-delete-guard-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    await prisma.booking.create({ data: { userId: bookingUser.id, eventId, seats: 1 } });
+
+    const server = createTestServer({ DELETE: withParams(deleteEvent, { id: eventId }) });
+    const res = await request(server).delete(`/api/events/${eventId}`).set('Cookie', adminCookie);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/existing booking/i);
+
+    const stillThere = await prisma.event.findUnique({ where: { id: eventId } });
+    expect(stillThere).not.toBeNull();
+
+    // Clean up before afterEach's event cleanup runs, or it would hit the
+    // same foreign key constraint this test is asserting on.
+    await prisma.booking.deleteMany({ where: { eventId } });
+    await prisma.user.delete({ where: { id: bookingUser.id } });
+  });
+
   it('DELETE removes the event as admin', async () => {
     const server = createTestServer({ DELETE: withParams(deleteEvent, { id: eventId }) });
     const res = await request(server).delete(`/api/events/${eventId}`).set('Cookie', adminCookie);

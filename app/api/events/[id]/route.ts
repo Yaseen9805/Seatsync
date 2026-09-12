@@ -76,6 +76,19 @@ export async function DELETE(request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
 
+  // Booking rows reference this event, so deleting it outright would hit a
+  // foreign key constraint - surface that as a clear 400 instead of an
+  // unhandled 500, same as PATCH already does for shrinking totalSeats.
+  const bookingCount = await prisma.booking.count({ where: { eventId: id } });
+  if (bookingCount > 0) {
+    return NextResponse.json(
+      {
+        error: `Cannot delete an event with ${bookingCount} existing booking(s). Cancel them first.`,
+      },
+      { status: 400 },
+    );
+  }
+
   await prisma.event.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
 }
