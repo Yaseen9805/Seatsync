@@ -69,8 +69,13 @@ export function RingCenter({
   // Leave some padding so text doesn't touch the inner ring
   const centerSize = baseInnerRadius * 2 - 16;
 
-  // If custom render function is provided, use it
-  if (children && hoveredData) {
+  // If custom render function is provided, use it - both at rest (showing
+  // the chart's default value/label) and while hovering a ring (showing
+  // that ring's detail). Previously this only activated while hoveredData
+  // was set, so the resting state - the default, most-seen state on every
+  // page load - silently fell through to the library's own default
+  // rendering below instead of the caller's intended content.
+  if (children) {
     return (
       <div
         className={cn(chartCenterContainerClassName, 'flex items-center justify-center', className)}
@@ -80,7 +85,7 @@ export function RingCenter({
           value: displayValue,
           label: displayLabel,
           isHovered: hoveredIndex !== null,
-          data: hoveredData,
+          data: hoveredData ?? data[0],
         })}
       </div>
     );
