@@ -1,6 +1,10 @@
 import { Resend } from 'resend';
 
-const FROM_ADDRESS = 'SeatSync <bookings@seatsync.dev>';
+// No custom domain is verified in Resend yet, so this uses their shared
+// sandbox sender - which only delivers to the Resend account's own signup
+// email, not arbitrary recipients. Swap for a verified domain's address
+// once one exists to send to real users.
+const FROM_ADDRESS = 'SeatSync <onboarding@resend.dev>';
 
 function getResendClient(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
