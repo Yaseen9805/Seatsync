@@ -2,6 +2,12 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/session';
 import { DeleteEventButton } from '@/components/DeleteEventButton';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
+import { FadeIn } from '@/components/motion/fade-in';
+import { StaggerList, StaggerItem } from '@/components/motion/stagger-list';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,44 +20,61 @@ function formatDate(date: Date): string {
 
 export default async function AdminEventsPage() {
   await requireAdminSession();
-  const events = await prisma.event.findMany({ orderBy: { date: 'asc' } });
+  const events = await prisma.event.findMany({
+    orderBy: { date: 'asc' },
+    include: { _count: { select: { bookings: true } } },
+  });
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Manage events</h1>
-        <Link
-          href="/admin/events/new"
-          className="rounded bg-zinc-950 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-zinc-950"
-        >
+      <FadeIn className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Manage events</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {events.length} event{events.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        <Link href="/admin/events/new" className={cn(buttonVariants({ variant: 'default' }))}>
           New event
         </Link>
-      </div>
+      </FadeIn>
       {events.length === 0 ? (
-        <p className="text-zinc-600 dark:text-zinc-400">No events yet.</p>
+        <p className="text-muted-foreground">No events yet.</p>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <StaggerList className="flex flex-col gap-3">
           {events.map((event) => (
-            <li
-              key={event.id}
-              className="flex items-center justify-between rounded border border-black/10 p-4 dark:border-white/10"
-            >
-              <div>
-                <p className="font-medium">{event.title}</p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {event.venue} &middot; {formatDate(event.date)} &middot; {event.seatsAvailable}/
-                  {event.totalSeats} seats
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Link href={`/admin/events/${event.id}/edit`} className="text-sm hover:underline">
-                  Edit
-                </Link>
-                <DeleteEventButton eventId={event.id} title={event.title} />
-              </div>
-            </li>
+            <StaggerItem key={event.id}>
+              <Card className="flex-row items-center justify-between px-4 py-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{event.title}</p>
+                    <Badge variant="secondary">
+                      {event.seatsAvailable}/{event.totalSeats} seats
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {event.venue} &middot; {formatDate(event.date)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/events/${event.id}/bookings`}
+                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                  >
+                    {event._count.bookings} attendee{event._count.bookings === 1 ? '' : 's'}
+                  </Link>
+                  <Link
+                    href={`/admin/events/${event.id}/edit`}
+                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                  >
+                    Edit
+                  </Link>
+                  <DeleteEventButton eventId={event.id} title={event.title} />
+                </div>
+              </Card>
+            </StaggerItem>
           ))}
-        </ul>
+        </StaggerList>
       )}
     </div>
   );

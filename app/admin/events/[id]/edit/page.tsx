@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/session';
 import { EventForm } from '@/components/EventForm';
 import { toDatetimeLocal } from '@/lib/datetimeLocal';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FadeIn } from '@/components/motion/fade-in';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -16,19 +18,25 @@ export default async function EditEventPage({ params }: Params) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Edit event</h1>
-      <EventForm
-        mode="edit"
-        eventId={event.id}
-        initialValues={{
-          title: event.title,
-          description: event.description,
-          venue: event.venue,
-          date: toDatetimeLocal(event.date.toISOString()),
-          totalSeats: String(event.totalSeats),
-        }}
-      />
-    </div>
+    <FadeIn className="mx-auto max-w-xl">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Edit event</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EventForm
+            mode="edit"
+            eventId={event.id}
+            initialValues={{
+              title: event.title,
+              description: event.description,
+              venue: event.venue,
+              date: toDatetimeLocal(event.date.toISOString()),
+              totalSeats: String(event.totalSeats),
+            }}
+          />
+        </CardContent>
+      </Card>
+    </FadeIn>
   );
 }
