@@ -14,7 +14,8 @@ development.
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - PostgreSQL via [Neon](https://neon.tech), accessed through Prisma
-- Hand-rolled auth (JWT + bcrypt)
+- Hand-rolled auth (JWT + bcrypt), rate limited on the database itself
+- [Zod](https://zod.dev) for request validation
 - [Resend](https://resend.com) for booking emails
 - Jest + Supertest for tests
 - GitHub Actions for CI
@@ -127,6 +128,30 @@ can't start in time. Seat accounting was correct even before that fix — the
 guarded decrement never oversold — the fix turns "busy" into an honest 503
 instead of an unhandled 500.
 
+## Rate limiting
+
+Signup and login are rate limited without adding a new service — no
+Upstash, no Redis, nothing beyond the free Neon database this project
+already uses. A `RateLimitAttempt` table (`prisma/schema.prisma`) holds one
+row per attempt, keyed by an arbitrary string such as `login:ip:1.2.3.4` or
+`login:email:user@example.com`. `lib/rateLimit.ts`'s `enforceRateLimit`
+records the current attempt, counts how many rows share that key within a
+rolling window, and throws once a threshold is exceeded — reusing
+`AuthError`/`toAuthErrorResponse` from `lib/auth.ts`, so a 429 looks exactly
+like every other auth error the app already returns.
+
+- Signup and login are both limited **by IP** (generous — 10 per 15
+  minutes), so a flood from one source is throttled regardless of which
+  email addresses it targets.
+- Login is additionally limited **by email** (stricter — 5 per 15 minutes),
+  so credential stuffing against one account is throttled even if it's
+  spread across many different IPs.
+
+Old rows are pruned opportunistically on every check (`DELETE ... WHERE
+createdAt < 24h ago`) instead of by a scheduled job, so there's no cron, no
+external scheduler, and no ongoing cost — just a cheap delete that piggybacks
+on requests the app is already handling.
+
 ## Deployment
 
 Deployed on [Vercel](https://vercel.com), which builds and hosts the Next.js
@@ -159,9 +184,8 @@ npx vercel --prod
 
 ## Admin access
 
-There's no signup flow for admins yet. To get one: sign up a normal account
-through `/api/auth/signup` (or the app once it has a signup page), then
-promote it directly in the database:
+There's no self-serve way to become an admin. Sign up a normal account at
+`/signup`, then promote it directly in the database:
 
 ```sql
 UPDATE "User" SET role = 'ADMIN' WHERE email = 'you@example.com';
@@ -182,3 +206,10 @@ Work in progress, built in phases:
 - [x] Phase 4 — booking UI + email
 - [x] Phase 5 — load-test proof
 - [x] Phase 6 — CI + deploy
+- [x] Phase 7 — hardening
+  - [x] Rate limiting on auth endpoints (DB-backed, no new service — see
+        [Rate limiting](#rate-limiting))
+  - [x] Zod request validation on auth + admin event routes, with
+        per-field error details
+  - [ ] Real booking emails — needs a real Resend API key in Vercel's
+        Production env vars (manual step, free tier, not yet done)
