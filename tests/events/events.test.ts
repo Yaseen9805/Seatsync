@@ -5,6 +5,7 @@ import {
   PATCH as updateEvent,
   DELETE as deleteEvent,
 } from '@/app/api/events/[id]/route';
+import { POST as createBooking } from '@/app/api/events/[id]/bookings/route';
 import { prisma } from '@/lib/prisma';
 import { signToken } from '@/lib/auth';
 import { createTestServer } from '../helpers/testServer';
@@ -170,6 +171,62 @@ describe('/api/events/[id]', () => {
       .send({ totalSeats: 5 });
 
     expect(res.status).toBe(400);
+  });
+
+  it('PATCH resize does not erase a booking that lands between its read and write', async () => {
+    const event = await prisma.event.create({
+      data: { ...validEvent, title: 'Test Resize Toctou', totalSeats: 10, seatsAvailable: 10 },
+    });
+    const bookingUser = await prisma.user.create({
+      data: { email: `test-resize-toctou-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    const bookingToken = signToken({ sub: bookingUser.id, email: bookingUser.email, role: 'USER' });
+
+    const patchServer = createTestServer({ PATCH: withParams(updateEvent, { id: event.id }) });
+    const bookingServer = createTestServer({ POST: withParams(createBooking, { id: event.id }) });
+
+    // Reproduces the real-world timing (admin reads the event, takes a while
+    // to save, by which point a user has booked) deterministically: splice a
+    // real booking request in right after the PATCH handler's first read of
+    // `existing`, which both the buggy and fixed code paths start with.
+    const originalFindUnique = prisma.event.findUnique.bind(prisma.event);
+    let intercepted = false;
+    const spy = jest.spyOn(prisma.event, 'findUnique').mockImplementation(((
+      args: Parameters<typeof prisma.event.findUnique>[0],
+    ) =>
+      (async () => {
+        const result = await originalFindUnique(args);
+        if (!intercepted) {
+          intercepted = true;
+          await request(bookingServer)
+            .post(`/api/events/${event.id}/bookings`)
+            .set('Cookie', `token=${bookingToken}`)
+            .send({ seats: 3 });
+        }
+        return result;
+      })()) as unknown as typeof prisma.event.findUnique);
+
+    try {
+      const res = await request(patchServer)
+        .patch(`/api/events/${event.id}`)
+        .set('Cookie', adminCookie)
+        .send({ totalSeats: 15 });
+      expect(res.status).toBe(200);
+    } finally {
+      spy.mockRestore();
+    }
+
+    const finalEvent = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
+    const { _sum } = await prisma.booking.aggregate({
+      where: { eventId: event.id },
+      _sum: { seats: true },
+    });
+    const bookedSeats = _sum.seats ?? 0;
+
+    expect(finalEvent.seatsAvailable + bookedSeats).toBe(finalEvent.totalSeats);
+
+    await prisma.booking.deleteMany({ where: { eventId: event.id } });
+    await prisma.user.delete({ where: { id: bookingUser.id } });
   });
 
   it('DELETE rejects a non-admin', async () => {

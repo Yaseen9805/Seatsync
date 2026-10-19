@@ -35,31 +35,44 @@ export async function PATCH(request: Request, { params }: Params) {
   }
   const { title, description, venue, date, totalSeats } = parsed.data;
 
-  const data: {
-    title?: string;
-    description?: string;
-    venue?: string;
-    date?: Date;
-    totalSeats?: number;
-    seatsAvailable?: number;
-  } = { title, description, venue, date };
-
-  if (totalSeats !== undefined) {
-    // Booked seats are seats already taken; resizing totalSeats shifts
-    // seatsAvailable by the same delta so existing bookings stay valid.
-    const bookedSeats = existing.totalSeats - existing.seatsAvailable;
-    const seatsAvailable = totalSeats - bookedSeats;
-    if (seatsAvailable < 0) {
-      return NextResponse.json(
-        { error: `Cannot reduce totalSeats below ${bookedSeats} already-booked seats` },
-        { status: 400 },
-      );
-    }
-    data.totalSeats = totalSeats;
-    data.seatsAvailable = seatsAvailable;
+  if (totalSeats === undefined) {
+    const event = await prisma.event.update({
+      where: { id },
+      data: { title, description, venue, date },
+    });
+    return NextResponse.json({ event });
   }
 
-  const event = await prisma.event.update({ where: { id }, data });
+  // Booked seats are seats already taken; resizing totalSeats shifts
+  // seatsAvailable by the same delta so existing bookings stay valid.
+  const bookedSeats = existing.totalSeats - existing.seatsAvailable;
+  if (totalSeats < bookedSeats) {
+    return NextResponse.json(
+      { error: `Cannot reduce totalSeats below ${bookedSeats} already-booked seats` },
+      { status: 400 },
+    );
+  }
+
+  // Apply the resize as a relative change guarded on the row's state at
+  // read time, so a booking that commits between our read and write can't
+  // be erased by this write landing with a stale absolute seatsAvailable.
+  const change = totalSeats - existing.totalSeats;
+  const result = await prisma.event.updateMany({
+    where: {
+      id,
+      totalSeats: existing.totalSeats,
+      seatsAvailable: { gte: -change },
+    },
+    data: { title, description, venue, date, totalSeats, seatsAvailable: { increment: change } },
+  });
+  if (result.count === 0) {
+    return NextResponse.json(
+      { error: 'Seats changed while you were editing. Reload and try again.' },
+      { status: 409 },
+    );
+  }
+
+  const event = await prisma.event.findUnique({ where: { id } });
   return NextResponse.json({ event });
 }
 
