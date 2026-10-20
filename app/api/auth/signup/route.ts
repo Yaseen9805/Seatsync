@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@/app/generated/prisma/client';
 import { hashPassword, setAuthCookie, signToken, toAuthErrorResponse } from '@/lib/auth';
 import { enforceRateLimit, getClientIp, SIGNUP_IP_RATE_LIMIT } from '@/lib/rateLimit';
 import { signupSchema } from '@/lib/schemas';
@@ -29,9 +30,19 @@ export async function POST(request: Request) {
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({
-    data: { email, passwordHash },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: { email, passwordHash },
+    });
+  } catch (err) {
+    // Two simultaneous signups can both pass the findUnique above; the unique
+    // index on email is what actually decides the winner.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      return NextResponse.json({ error: 'Email is already registered' }, { status: 409 });
+    }
+    throw err;
+  }
 
   const token = signToken({ sub: user.id, email: user.email, role: user.role });
   const response = NextResponse.json(

@@ -277,6 +277,27 @@ describe('/api/events/[id]', () => {
     await prisma.user.delete({ where: { id: bookingUser.id } });
   });
 
+  it('DELETE returns 400, not 500, when a booking lands after the booking-count check', async () => {
+    const bookingUser = await prisma.user.create({
+      data: { email: `test-delete-race-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    await prisma.booking.create({ data: { userId: bookingUser.id, eventId, seats: 1 } });
+
+    // Simulate the booking arriving after the handler counted zero bookings.
+    const spy = jest.spyOn(prisma.booking, 'count').mockResolvedValueOnce(0 as never);
+    try {
+      const server = createTestServer({ DELETE: withParams(deleteEvent, { id: eventId }) });
+      const res = await request(server).delete(`/api/events/${eventId}`).set('Cookie', adminCookie);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/existing booking/i);
+    } finally {
+      spy.mockRestore();
+    }
+
+    await prisma.booking.deleteMany({ where: { eventId } });
+    await prisma.user.delete({ where: { id: bookingUser.id } });
+  });
+
   it('DELETE removes the event as admin', async () => {
     const server = createTestServer({ DELETE: withParams(deleteEvent, { id: eventId }) });
     const res = await request(server).delete(`/api/events/${eventId}`).set('Cookie', adminCookie);

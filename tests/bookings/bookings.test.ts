@@ -98,6 +98,21 @@ describe('POST /api/events/[id]/bookings', () => {
     expect(atCap.status).toBe(201);
   });
 
+  it('returns 401 and keeps seats intact when the token belongs to a deleted user', async () => {
+    const event = await createTestEvent(10);
+    const { user, cookie } = await createTestUser('deleted-user');
+    await prisma.user.delete({ where: { id: user.id } });
+
+    const res = await request(serverFor(event.id))
+      .post(`/api/events/${event.id}/bookings`)
+      .set('Cookie', cookie)
+      .send({ seats: 2 });
+
+    expect(res.status).toBe(401);
+    const unchanged = await prisma.event.findUnique({ where: { id: event.id } });
+    expect(unchanged?.seatsAvailable).toBe(10);
+  });
+
   it('rejects booking an event that has already happened', async () => {
     const event = await prisma.event.create({
       data: {
@@ -206,6 +221,25 @@ describe('POST /api/events/[id]/bookings', () => {
 });
 
 describe('DELETE /api/events/[id]/bookings', () => {
+  it('gives one 204 and one 404 when the same booking is cancelled twice at once', async () => {
+    const event = await createTestEvent(10);
+    const { cookie } = await createTestUser('double-cancel');
+    const server = serverFor(event.id);
+    await request(server)
+      .post(`/api/events/${event.id}/bookings`)
+      .set('Cookie', cookie)
+      .send({ seats: 4 });
+
+    const responses = await Promise.all([
+      request(server).delete(`/api/events/${event.id}/bookings`).set('Cookie', cookie),
+      request(server).delete(`/api/events/${event.id}/bookings`).set('Cookie', cookie),
+    ]);
+
+    expect(responses.map((r) => r.status).sort()).toEqual([204, 404]);
+    const restored = await prisma.event.findUnique({ where: { id: event.id } });
+    expect(restored?.seatsAvailable).toBe(10);
+  });
+
   it('rejects requests with no auth', async () => {
     const event = await createTestEvent(10);
     const res = await request(serverFor(event.id)).delete(`/api/events/${event.id}/bookings`);

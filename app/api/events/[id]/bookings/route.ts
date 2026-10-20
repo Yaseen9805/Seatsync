@@ -105,6 +105,10 @@ export async function POST(request: Request, { params }: Params) {
         { status: 409 },
       );
     }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+      // The user row is gone (account deleted) but their token is still valid.
+      return NextResponse.json({ error: 'Please log in again' }, { status: 401 });
+    }
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2028') {
       return NextResponse.json(
         { error: 'Booking service is busy, please try again' },
@@ -145,6 +149,10 @@ export async function DELETE(request: Request, { params }: Params) {
       });
     }, BOOKING_TX_OPTIONS);
   } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      // The same booking was cancelled by a concurrent request.
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2028') {
       return NextResponse.json(
         { error: 'Booking service is busy, please try again' },

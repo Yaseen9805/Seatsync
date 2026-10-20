@@ -52,6 +52,16 @@ describe('POST /api/auth/signup', () => {
     expect(res.status).toBe(409);
   });
 
+  it('gives one 201 and one 409 for two simultaneous signups with the same email', async () => {
+    const responses = await Promise.all([
+      request(server).post('/api/auth/signup').send({ email, password: 'password123' }),
+      request(server).post('/api/auth/signup').send({ email, password: 'password123' }),
+    ]);
+
+    expect(responses.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(await prisma.user.count({ where: { email } })).toBe(1);
+  });
+
   it('rejects a short password with a per-field error', async () => {
     const res = await request(server).post('/api/auth/signup').send({ email, password: 'short' });
 

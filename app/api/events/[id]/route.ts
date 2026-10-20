@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@/app/generated/prisma/client';
 import { requireAdmin, toAuthErrorResponse } from '@/lib/auth';
 import { updateEventSchema } from '@/lib/schemas';
 import { validationErrorResponse } from '@/lib/validation';
@@ -102,6 +103,17 @@ export async function DELETE(request: Request, { params }: Params) {
     );
   }
 
-  await prisma.event.delete({ where: { id } });
+  try {
+    await prisma.event.delete({ where: { id } });
+  } catch (err) {
+    // A booking can land between the count above and this delete.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Cannot delete an event with existing booking(s). Cancel them first.' },
+        { status: 400 },
+      );
+    }
+    throw err;
+  }
   return new NextResponse(null, { status: 204 });
 }
