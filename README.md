@@ -103,6 +103,7 @@ cp .env.example .env
 - `DIRECT_URL` — direct (non-pooled) Neon connection string, used for migrations
 - `JWT_SECRET` — a long random string (`openssl rand -base64 32`)
 - `RESEND_API_KEY` — a Resend API key (see the sandbox limitation above)
+- `EMAIL_FROM` — optional sender address, e.g. `SeatSync <bookings@yourdomain.com>`; defaults to Resend's sandbox sender, so set it once you've verified a domain in Resend
 
 Generate the Prisma client:
 
@@ -251,6 +252,7 @@ The Vercel project (`seatsync`) is linked to this GitHub repo and has its own en
 - `DATABASE_URL` / `DIRECT_URL` — a dedicated Neon `production` branch
 - `JWT_SECRET` — its own long random string, distinct from dev/test
 - `RESEND_API_KEY` — a real Resend key (see [Prerequisites](#prerequisites) for the sandbox-sender limitation)
+- `EMAIL_FROM` — optional; the sender address for booking emails (needs a domain verified in Resend to reach real users)
 
 The build command (`npm run build`, i.e. [scripts/build.mjs](scripts/build.mjs)) always runs `prisma generate` and `next build`, but only runs `prisma migrate deploy` when `VERCEL_ENV=production`. Production deploys therefore apply pending migrations automatically, while preview deploys and local builds never touch whatever database `DIRECT_URL` points at (CI applies migrations to the test branch itself before running tests).
 

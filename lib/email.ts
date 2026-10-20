@@ -1,11 +1,10 @@
 import { APP_TIME_ZONE } from '@/lib/time';
 import { Resend } from 'resend';
 
-// No custom domain is verified in Resend yet, so this uses their shared
-// sandbox sender - which only delivers to the Resend account's own signup
-// email, not arbitrary recipients. Swap for a verified domain's address
-// once one exists to send to real users.
-const FROM_ADDRESS = 'SeatSync <onboarding@resend.dev>';
+// Defaults to Resend's shared sandbox sender, which only delivers to the
+// Resend account's own signup email. Set EMAIL_FROM to an address on a
+// verified domain (e.g. "SeatSync <bookings@yourdomain.com>") to email real users.
+const FROM_ADDRESS = process.env.EMAIL_FROM ?? 'SeatSync <onboarding@resend.dev>';
 
 function getResendClient(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
