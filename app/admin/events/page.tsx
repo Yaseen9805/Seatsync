@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { APP_TIME_ZONE } from '@/lib/time';
@@ -9,6 +10,8 @@ import { buttonVariants } from '@/components/ui/button';
 import { FadeIn } from '@/components/motion/fade-in';
 import { StaggerList, StaggerItem } from '@/components/motion/stagger-list';
 import { cn } from '@/lib/utils';
+
+export const metadata: Metadata = { title: 'Manage events' };
 
 export const dynamic = 'force-dynamic';
 

@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SeatSync',
+  metadataBase: new URL('https://seatsync-beta.vercel.app'),
+  title: { default: 'SeatSync', template: '%s · SeatSync' },
   description: 'Concurrency-safe event booking',
 };
 

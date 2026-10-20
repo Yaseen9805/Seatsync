@@ -1,7 +1,10 @@
+import type { Metadata } from 'next';
 import { requireAdminSession } from '@/lib/session';
 import { EventForm } from '@/components/EventForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FadeIn } from '@/components/motion/fade-in';
+
+export const metadata: Metadata = { title: 'New event' };
 
 export default async function NewEventPage() {
   await requireAdminSession();

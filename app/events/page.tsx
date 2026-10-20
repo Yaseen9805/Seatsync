@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { APP_TIME_ZONE } from '@/lib/time';
@@ -5,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FadeIn } from '@/components/motion/fade-in';
 import { StaggerList, StaggerItem } from '@/components/motion/stagger-list';
+
+export const metadata: Metadata = { title: 'Events' };
 
 export const dynamic = 'force-dynamic';
 

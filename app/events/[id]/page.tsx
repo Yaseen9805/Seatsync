@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { APP_TIME_ZONE } from '@/lib/time';
@@ -19,6 +20,12 @@ function formatDate(date: Date): string {
 }
 
 type Params = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params;
+  const event = await prisma.event.findUnique({ where: { id }, select: { title: true } });
+  return { title: event?.title ?? 'Event not found' };
+}
 
 export default async function EventDetailPage({ params }: Params) {
   const { id } = await params;

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
@@ -18,6 +19,8 @@ function formatDateTime(date: Date): string {
     timeZone: APP_TIME_ZONE,
   }).format(date);
 }
+
+export const metadata: Metadata = { title: 'Attendees' };
 
 type Params = { params: Promise<{ id: string }> };
 

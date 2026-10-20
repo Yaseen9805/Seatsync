@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/session';
@@ -5,6 +6,8 @@ import { EventForm } from '@/components/EventForm';
 import { toDatetimeLocal } from '@/lib/time';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FadeIn } from '@/components/motion/fade-in';
+
+export const metadata: Metadata = { title: 'Edit event' };
 
 type Params = { params: Promise<{ id: string }> };
 
