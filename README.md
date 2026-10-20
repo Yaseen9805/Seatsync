@@ -234,6 +234,7 @@ seatsync/
 │   ├── schema.prisma
 │   └── migrations/
 ├── scripts/
+│   ├── build.mjs                       # prisma generate, migrate (production only), next build
 │   └── loadtest.ts                     # concurrency load test against a running server
 ├── tests/
 │   ├── auth/, events/, bookings/       # Jest + Supertest, real HTTP + real Postgres
@@ -251,7 +252,7 @@ The Vercel project (`seatsync`) is linked to this GitHub repo and has its own en
 - `JWT_SECRET` — its own long random string, distinct from dev/test
 - `RESEND_API_KEY` — a real Resend key (see [Prerequisites](#prerequisites) for the sandbox-sender limitation)
 
-The build command (`npm run build`) runs `prisma generate && prisma migrate deploy && next build`, so every deploy applies any pending migrations to the production database automatically before building.
+The build command (`npm run build`, i.e. [scripts/build.mjs](scripts/build.mjs)) always runs `prisma generate` and `next build`, but only runs `prisma migrate deploy` when `VERCEL_ENV=production`. Production deploys therefore apply pending migrations automatically, while preview deploys and local builds never touch whatever database `DIRECT_URL` points at (CI applies migrations to the test branch itself before running tests).
 
 To redeploy manually instead of waiting on the GitHub integration:
 
