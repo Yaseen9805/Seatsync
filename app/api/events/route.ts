@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    requireAdmin(request);
+    await requireAdmin(request);
   } catch (err) {
     return toAuthErrorResponse(err);
   }

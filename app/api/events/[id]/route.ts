@@ -18,7 +18,7 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function PATCH(request: Request, { params }: Params) {
   try {
-    requireAdmin(request);
+    await requireAdmin(request);
   } catch (err) {
     return toAuthErrorResponse(err);
   }
@@ -79,7 +79,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
 export async function DELETE(request: Request, { params }: Params) {
   try {
-    requireAdmin(request);
+    await requireAdmin(request);
   } catch (err) {
     return toAuthErrorResponse(err);
   }

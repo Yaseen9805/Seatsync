@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
 import type { Role } from '@/app/generated/prisma/enums';
+import { prisma } from '@/lib/prisma';
 
 const SALT_ROUNDS = 10;
 const TOKEN_TTL = '7d';
@@ -88,9 +89,17 @@ export function requireAuth(request: Request): AuthPayload {
   return verifyToken(token);
 }
 
-export function requireAdmin(request: Request): AuthPayload {
+/** True only if the user still exists and is currently an ADMIN in the database. */
+export async function isAdminInDb(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  return user?.role === 'ADMIN';
+}
+
+// The role inside a JWT is frozen for the token's 7-day lifetime, so a demoted
+// or deleted admin would keep access; the database is the source of truth.
+export async function requireAdmin(request: Request): Promise<AuthPayload> {
   const payload = requireAuth(request);
-  if (payload.role !== 'ADMIN') {
+  if (!(await isAdminInDb(payload.sub))) {
     throw new AuthError('Admin access required', 403);
   }
   return payload;

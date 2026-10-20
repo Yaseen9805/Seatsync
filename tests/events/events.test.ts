@@ -11,10 +11,24 @@ import { signToken } from '@/lib/auth';
 import { createTestServer } from '../helpers/testServer';
 import { withParams } from '../helpers/withParams';
 
-const adminToken = signToken({ sub: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
-const userToken = signToken({ sub: 'user-1', email: 'user@example.com', role: 'USER' });
-const adminCookie = `token=${adminToken}`;
-const userCookie = `token=${userToken}`;
+const ACTOR_EMAIL_PREFIX = 'test-events-actor-';
+let adminCookie = '';
+let userCookie = '';
+
+beforeAll(async () => {
+  const admin = await prisma.user.create({
+    data: {
+      email: `${ACTOR_EMAIL_PREFIX}admin-${Date.now()}@example.com`,
+      passwordHash: 'x',
+      role: 'ADMIN',
+    },
+  });
+  const user = await prisma.user.create({
+    data: { email: `${ACTOR_EMAIL_PREFIX}user-${Date.now()}@example.com`, passwordHash: 'x' },
+  });
+  adminCookie = `token=${signToken({ sub: admin.id, email: admin.email, role: 'ADMIN' })}`;
+  userCookie = `token=${signToken({ sub: user.id, email: user.email, role: 'USER' })}`;
+});
 
 const collectionServer = createTestServer({ GET: listEvents, POST: createEvent });
 
@@ -32,6 +46,7 @@ async function cleanupByTitlePrefix(prefix: string) {
 
 afterAll(async () => {
   await cleanupByTitlePrefix('Test ');
+  await prisma.user.deleteMany({ where: { email: { startsWith: ACTOR_EMAIL_PREFIX } } });
   await prisma.$disconnect();
 });
 
