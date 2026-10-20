@@ -79,7 +79,7 @@ Request flow for a booking (`POST /api/events/:id/bookings`): the rate limiter a
 
 ## Prerequisites
 
-- Node.js and npm
+- Node.js 22 or newer, and npm
 - A [Neon](https://neon.tech) Postgres project (free tier) — ideally three branches: one for local dev, one for tests, one for production
 - A [Resend](https://resend.com) API key (free tier, no card required — used to send booking emails)
   - **Sandbox limitation**: without verifying your own domain, Resend's free sandbox sender (`onboarding@resend.dev`) can only deliver to the email address your Resend account itself was signed up with — not to arbitrary bookers. Fine for demonstrating the feature; verify a domain (still free) if you want it to email real users.
