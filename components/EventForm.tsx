@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import GradientButton from '@/components/kokonutui/gradient-button';
+import { fromDatetimeLocal } from '@/lib/time';
 
 type EventFormValues = {
   title: string;
@@ -46,7 +47,7 @@ export function EventForm(props: EventFormProps) {
       title: values.title,
       description: values.description,
       venue: values.venue,
-      date: new Date(values.date).toISOString(),
+      date: fromDatetimeLocal(values.date).toISOString(),
       totalSeats: Number(values.totalSeats),
     };
 
@@ -104,7 +105,7 @@ export function EventForm(props: EventFormProps) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="date">Date and time</Label>
+          <Label htmlFor="date">Date and time (IST)</Label>
           <Input
             id="date"
             type="datetime-local"

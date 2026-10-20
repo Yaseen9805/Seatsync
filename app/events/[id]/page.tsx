@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { APP_TIME_ZONE } from '@/lib/time';
 import { getSession } from '@/lib/session';
 import { BookingPanel } from '@/components/BookingPanel';
 import { SeatsRingChart } from '@/components/SeatsRingChart';
@@ -13,6 +14,7 @@ function formatDate(date: Date): string {
   return new Intl.DateTimeFormat('en-US', {
     dateStyle: 'full',
     timeStyle: 'short',
+    timeZone: APP_TIME_ZONE,
   }).format(date);
 }
 

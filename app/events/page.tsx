@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { APP_TIME_ZONE } from '@/lib/time';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FadeIn } from '@/components/motion/fade-in';
@@ -11,6 +12,7 @@ function formatDate(date: Date): string {
   return new Intl.DateTimeFormat('en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: APP_TIME_ZONE,
   }).format(date);
 }
 

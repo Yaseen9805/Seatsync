@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { APP_TIME_ZONE } from '@/lib/time';
 import { requireAdminSession } from '@/lib/session';
 import { DeleteEventButton } from '@/components/DeleteEventButton';
 import { Card } from '@/components/ui/card';
@@ -15,6 +16,7 @@ function formatDate(date: Date): string {
   return new Intl.DateTimeFormat('en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: APP_TIME_ZONE,
   }).format(date);
 }
 

@@ -1,3 +1,4 @@
+import { APP_TIME_ZONE } from '@/lib/time';
 import { Resend } from 'resend';
 
 // No custom domain is verified in Resend yet, so this uses their shared
@@ -21,7 +22,11 @@ type BookingEmailDetails = {
 };
 
 function formatEventDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeStyle: 'short' }).format(date);
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: APP_TIME_ZONE,
+  }).format(date);
 }
 
 /**

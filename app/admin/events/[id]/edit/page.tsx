@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/session';
 import { EventForm } from '@/components/EventForm';
-import { toDatetimeLocal } from '@/lib/datetimeLocal';
+import { toDatetimeLocal } from '@/lib/time';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FadeIn } from '@/components/motion/fade-in';
 
@@ -31,7 +31,7 @@ export default async function EditEventPage({ params }: Params) {
               title: event.title,
               description: event.description,
               venue: event.venue,
-              date: toDatetimeLocal(event.date.toISOString()),
+              date: toDatetimeLocal(event.date),
               totalSeats: String(event.totalSeats),
             }}
           />
