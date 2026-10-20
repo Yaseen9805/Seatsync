@@ -15,6 +15,15 @@ export default function Home() {
         Seat counts are enforced by real database transactions, not application-level checks — no
         duplicate bookings, no negative seat counts, even under heavy concurrent load.
       </p>
+      <a
+        href="https://github.com/Yaseen9805/Seatsync#load-testing"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="max-w-md text-sm text-foreground underline underline-offset-4"
+      >
+        Load-tested: 300 simultaneous booking requests for 30 seats → exactly 30 booked, 270 cleanly
+        rejected.
+      </a>
       <Link href="/events">
         <GradientButton label="Browse events" variant="emerald" />
       </Link>

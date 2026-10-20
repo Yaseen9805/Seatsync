@@ -36,9 +36,17 @@ export async function Header() {
           {session ? (
             <LogoutButton />
           ) : (
-            <Link href="/login" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
-              Log in
-            </Link>
+            <>
+              <Link href="/signup" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
+                Sign up
+              </Link>
+              <Link
+                href="/login"
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+              >
+                Log in
+              </Link>
+            </>
           )}
         </nav>
       </div>
