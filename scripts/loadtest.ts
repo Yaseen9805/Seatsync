@@ -46,7 +46,7 @@ async function main() {
       title: 'Load Test Event',
       description: 'Created by scripts/loadtest.ts',
       venue: 'Load Test Venue',
-      date: new Date('2027-01-01T20:00:00.000Z'),
+      date: new Date('2099-01-01T20:00:00.000Z'),
       totalSeats: SEATS,
       seatsAvailable: SEATS,
     },

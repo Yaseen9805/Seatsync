@@ -25,7 +25,10 @@ function seatBadge(seatsAvailable: number, totalSeats: number) {
 }
 
 export default async function EventsPage() {
-  const events = await prisma.event.findMany({ orderBy: { date: 'asc' } });
+  const events = await prisma.event.findMany({
+    where: { date: { gte: new Date() } },
+    orderBy: { date: 'asc' },
+  });
 
   return (
     <div className="flex flex-col gap-6">

@@ -22,7 +22,7 @@ const validEvent = {
   title: 'Test Concert',
   description: 'A test event',
   venue: 'Test Arena',
-  date: '2027-01-01T20:00:00.000Z',
+  date: '2099-01-01T20:00:00.000Z',
   totalSeats: 100,
 };
 
@@ -40,6 +40,27 @@ describe('GET /api/events', () => {
     const res = await request(collectionServer).get('/api/events');
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.events)).toBe(true);
+  });
+
+  it('omits past events and includes upcoming ones', async () => {
+    const past = await prisma.event.create({
+      data: {
+        ...validEvent,
+        title: 'Test Past Listing',
+        date: new Date('2020-01-01T20:00:00.000Z'),
+        seatsAvailable: 100,
+      },
+    });
+    const upcoming = await prisma.event.create({
+      data: { ...validEvent, title: 'Test Upcoming Listing', seatsAvailable: 100 },
+    });
+
+    const res = await request(collectionServer).get('/api/events');
+    const ids = res.body.events.map((e: { id: string }) => e.id);
+    expect(ids).toContain(upcoming.id);
+    expect(ids).not.toContain(past.id);
+
+    await cleanupByTitlePrefix('Test ');
   });
 });
 

@@ -53,6 +53,9 @@ export async function POST(request: Request, { params }: Params) {
   if (!event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
+  if (event.date < new Date()) {
+    return NextResponse.json({ error: 'This event has already happened' }, { status: 400 });
+  }
 
   try {
     const booking = await prisma.$transaction(async (tx) => {

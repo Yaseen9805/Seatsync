@@ -5,7 +5,10 @@ import { createEventSchema } from '@/lib/schemas';
 import { validationErrorResponse } from '@/lib/validation';
 
 export async function GET() {
-  const events = await prisma.event.findMany({ orderBy: { date: 'asc' } });
+  const events = await prisma.event.findMany({
+    where: { date: { gte: new Date() } },
+    orderBy: { date: 'asc' },
+  });
   return NextResponse.json({ events });
 }
 

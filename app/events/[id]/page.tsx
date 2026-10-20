@@ -54,6 +54,7 @@ export default async function EventDetailPage({ params }: Params) {
           <BookingPanel
             eventId={event.id}
             seatsAvailable={event.seatsAvailable}
+            isPast={event.date < new Date()}
             isLoggedIn={!!session}
             existingBooking={existingBooking ? { seats: existingBooking.seats } : null}
           />

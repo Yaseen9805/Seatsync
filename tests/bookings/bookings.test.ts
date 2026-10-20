@@ -27,7 +27,7 @@ async function createTestEvent(totalSeats: number) {
       title: 'Booking Test Event',
       description: 'A test event',
       venue: 'Test Arena',
-      date: new Date('2027-01-01T20:00:00.000Z'),
+      date: new Date('2099-01-01T20:00:00.000Z'),
       totalSeats,
       seatsAvailable: totalSeats,
     },
@@ -74,6 +74,30 @@ describe('POST /api/events/[id]/bookings', () => {
       .set('Cookie', cookie)
       .send({ seats: 1 });
     expect(res.status).toBe(404);
+  });
+
+  it('rejects booking an event that has already happened', async () => {
+    const event = await prisma.event.create({
+      data: {
+        title: 'Booking Test Event',
+        description: 'A past event',
+        venue: 'Test Arena',
+        date: new Date('2020-01-01T20:00:00.000Z'),
+        totalSeats: 10,
+        seatsAvailable: 10,
+      },
+    });
+    const { cookie } = await createTestUser('past-event');
+
+    const res = await request(serverFor(event.id))
+      .post(`/api/events/${event.id}/bookings`)
+      .set('Cookie', cookie)
+      .send({ seats: 1 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/already happened/i);
+    const unchanged = await prisma.event.findUnique({ where: { id: event.id } });
+    expect(unchanged?.seatsAvailable).toBe(10);
   });
 
   it('creates a booking and decrements seatsAvailable', async () => {

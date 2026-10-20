@@ -51,6 +51,7 @@ export default async function AdminEventsPage() {
                     <Badge variant="secondary">
                       {event.seatsAvailable}/{event.totalSeats} seats
                     </Badge>
+                    {event.date < new Date() && <Badge variant="outline">Past</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {event.venue} &middot; {formatDate(event.date)}

@@ -12,6 +12,7 @@ import GradientButton from '@/components/kokonutui/gradient-button';
 type BookingPanelProps = {
   eventId: string;
   seatsAvailable: number;
+  isPast: boolean;
   isLoggedIn: boolean;
   existingBooking: { seats: number } | null;
 };
@@ -19,6 +20,7 @@ type BookingPanelProps = {
 export function BookingPanel({
   eventId,
   seatsAvailable,
+  isPast,
   isLoggedIn,
   existingBooking,
 }: BookingPanelProps) {
@@ -75,6 +77,10 @@ export function BookingPanel({
       </motion.p>
     </AnimatePresence>
   );
+
+  if (isPast) {
+    return <p className="text-sm text-muted-foreground">This event has ended.</p>;
+  }
 
   if (!isLoggedIn) {
     return (
