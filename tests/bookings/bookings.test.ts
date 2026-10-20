@@ -76,6 +76,28 @@ describe('POST /api/events/[id]/bookings', () => {
     expect(res.status).toBe(404);
   });
 
+  it('rejects more seats than the per-booking cap, even when seats are available', async () => {
+    const event = await createTestEvent(50);
+    const { cookie } = await createTestUser('over-cap');
+    const server = serverFor(event.id);
+
+    const tooMany = await request(server)
+      .post(`/api/events/${event.id}/bookings`)
+      .set('Cookie', cookie)
+      .send({ seats: 11 });
+    expect(tooMany.status).toBe(400);
+    expect(tooMany.body.error).toBe('seats must be between 1 and 10');
+
+    const unchanged = await prisma.event.findUnique({ where: { id: event.id } });
+    expect(unchanged?.seatsAvailable).toBe(50);
+
+    const atCap = await request(server)
+      .post(`/api/events/${event.id}/bookings`)
+      .set('Cookie', cookie)
+      .send({ seats: 10 });
+    expect(atCap.status).toBe(201);
+  });
+
   it('rejects booking an event that has already happened', async () => {
     const event = await prisma.event.create({
       data: {

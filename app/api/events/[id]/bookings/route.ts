@@ -2,6 +2,7 @@ import { NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@/app/generated/prisma/client';
 import { requireAuth, toAuthErrorResponse } from '@/lib/auth';
+import { MAX_SEATS_PER_BOOKING } from '@/lib/bookingLimits';
 import { sendBookingCancellationEmail, sendBookingConfirmationEmail } from '@/lib/email';
 
 type Params = { params: Promise<{ id: string }> };
@@ -47,6 +48,12 @@ export async function POST(request: Request, { params }: Params) {
   const seats = Number(body?.seats);
   if (!Number.isInteger(seats) || seats < 1) {
     return NextResponse.json({ error: 'seats must be a positive integer' }, { status: 400 });
+  }
+  if (seats > MAX_SEATS_PER_BOOKING) {
+    return NextResponse.json(
+      { error: `seats must be between 1 and ${MAX_SEATS_PER_BOOKING}` },
+      { status: 400 },
+    );
   }
 
   const event = await prisma.event.findUnique({ where: { id: eventId } });

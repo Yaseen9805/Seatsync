@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import GradientButton from '@/components/kokonutui/gradient-button';
+import { MAX_SEATS_PER_BOOKING } from '@/lib/bookingLimits';
 
 type BookingPanelProps = {
   eventId: string;
@@ -120,7 +121,7 @@ export function BookingPanel({
           id="seats"
           type="number"
           min={1}
-          max={seatsAvailable}
+          max={Math.min(MAX_SEATS_PER_BOOKING, seatsAvailable)}
           required
           value={seats}
           onChange={(e) => setSeats(e.target.value)}
